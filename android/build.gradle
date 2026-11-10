@@ -60,7 +60,7 @@ android {
 
   compileSdkVersion getExtOrIntegerDefault("compileSdkVersion")
 
-  ndkVersion = getExtOrIntegerDefault("ndkVersion")
+  ndkVersion = getExtOrDefault("ndkVersion")
 
   defaultConfig {
     minSdkVersion getExtOrIntegerDefault("minSdkVersion")

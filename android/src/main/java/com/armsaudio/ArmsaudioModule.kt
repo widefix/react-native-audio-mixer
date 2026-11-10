@@ -8,7 +8,6 @@ import android.os.SystemClock
 import android.util.Log
 import com.arthenica.ffmpegkit.FFmpegKit
 import com.arthenica.ffmpegkit.ReturnCode
-import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
@@ -103,11 +102,21 @@ class ArmsaudioModule(reactContext: ReactApplicationContext) :
     }
 
     private fun handleAudioFocusLoss() {
-        pauseAudio()
+        pauseForInterruption()
     }
 
     private fun handleAudioFocusLossTransient() {
+        // Resumes on AUDIOFOCUS_GAIN, so JS keeps showing it as playing.
         pauseAudio()
+    }
+
+    private fun pauseForInterruption() {
+        if (isMixPaused) return
+        pauseAudio()
+        isMixPaused = true
+        amplitudeTimer?.cancel()
+        progressUpdateTimer?.cancel()
+        sendEvent("PlaybackPaused", null)
     }
 
     private fun handleAudioFocusGain() {
@@ -190,7 +199,6 @@ class ArmsaudioModule(reactContext: ReactApplicationContext) :
         // Keep: Required for RN built in Event Emitter Calls.
     }
 
-    @ReactMethod
     private fun testLibrary() {
         val expected = 17L
         val actual = testFunction()
@@ -214,7 +222,7 @@ class ArmsaudioModule(reactContext: ReactApplicationContext) :
     @ReactMethod
     fun downloadAudioFiles(urlStrings: ReadableArray) {
         resetApp()
-        sendEvent("DownloadStart", "DownloadStart")
+        sendMapEvent("DownloadStart", mapOf("status" to "DownloadStart"))
         if (!playerPrepared) {
             preparePlayer()
             playerPrepared = true
@@ -242,19 +250,13 @@ class ArmsaudioModule(reactContext: ReactApplicationContext) :
                         return@async
                     }
 
-                    val eventDownloadParams = Arguments.createMap()
-                    eventDownloadParams.putString("fileName downloaded", file?.name)
-                    sendEvent("TrackLoaded", eventDownloadParams)
-
                     val convertedFile = convertAndAddTrack(file, url)
                     if (convertedFile == null) {
                         hasErrorOccurred = true
                         sendDownloadErrors("Failed to convert file: ${file.name}")
                         return@async
                     }
-                    val eventConvertParams = Arguments.createMap()
-                    eventConvertParams.putString("fileName converted", file?.name)
-                    sendEvent("TrackLoaded", eventConvertParams)
+                    sendMapEvent("TrackLoaded", mapOf("name" to convertedFile.absolutePath))
                 }
             }
 
@@ -293,35 +295,34 @@ class ArmsaudioModule(reactContext: ReactApplicationContext) :
     }
 
     @ReactMethod
-    fun setVolume(volume: Float, forFileName: String, promise: Promise) {
+    fun setVolume(volume: Double, forFileName: String) {
         val track = audioTracks.find { it.fileName == forFileName }
-        if (track != null) {
-            track.volume = volume
-            setTrackVolume(track.internalTrackNumber, volume)
-            promise.resolve(true)
-        } else {
-            promise.reject("SET_VOLUME_ERROR", "Player does not exist for $forFileName")
-            sendGenAppErrors("Player does not exist for $forFileName")
+        if (track == null) {
+            sendGenAppErrors("Unknown mixer track")
+            return
         }
+        if (!volume.isFinite()) return
+        track.volume = volume.toFloat().coerceIn(0f, 1f)
+        setTrackVolume(track.internalTrackNumber, track.volume)
     }
 
     @ReactMethod
-    fun setPan(pan: Float, forFileName: String, promise: Promise) {
+    fun setPan(pan: Double, forFileName: String) {
         val track = audioTracks.find { it.fileName == forFileName }
-        if (track != null) {
-            track.pan = pan
-            setTrackPan(track.internalTrackNumber, pan)
-            promise.resolve(true)
-        } else {
-            promise.reject("SET_PAN_ERROR", "Player does not exist for $forFileName")
-            sendGenAppErrors("Player does not exist for $forFileName")
+        if (track == null) {
+            sendGenAppErrors("Unknown mixer track")
+            return
         }
+        // -1 = left, 0 = center, 1 = right, same as iOS.
+        if (!pan.isFinite()) return
+        track.pan = pan.toFloat().coerceIn(-1f, 1f)
+        setTrackPan(track.internalTrackNumber, track.pan)
     }
 
     @ReactMethod
-    fun setPlaybackPosition(progress: Double, promise: Promise) {
-        setPosition(progress.toFloat())
-        promise.resolve(true)
+    fun setPlaybackPosition(progress: Double) {
+        if (!progress.isFinite()) return
+        setPosition(progress.coerceIn(0.0, 1.0).toFloat())
     }
 
     private fun startAmplitudeUpdate() {
@@ -350,7 +351,7 @@ class ArmsaudioModule(reactContext: ReactApplicationContext) :
         val eventParams = Arguments.createMap()
         val amplitudesMap = Arguments.createMap()
         audioTracks.forEach {
-            amplitudesMap.putString(it.fileName, it.amplitudes.last().toString())
+            amplitudesMap.putDouble(it.fileName, it.amplitudes.last().toDouble())
         }
 
         eventParams.putMap("amplitudes", amplitudesMap)
@@ -371,7 +372,7 @@ class ArmsaudioModule(reactContext: ReactApplicationContext) :
     }
 
     @ReactMethod
-    private fun resetApp() {
+    fun resetApp() {
         // Stop and release all media players
         resetPlayer()
         // Cancel all ongoing downloads
