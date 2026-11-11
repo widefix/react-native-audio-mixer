@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-test:
+    name: Lint, typecheck and test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: yarn
+      - run: yarn install --immutable
+      - run: yarn typecheck
+      - run: yarn lint
+      - run: yarn test --ci
+      - run: yarn prepare
+
+  ios-native-tests:
+    name: iOS mixer tests
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: ./tests/test-ios-pcm.sh
+
+  build-android:
+    name: Build example (Android)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: yarn
+      - uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+      - run: yarn install --immutable
+      - name: Build debug APK
+        working-directory: example/android
+        run: ./gradlew :app:assembleDebug -PreactNativeArchitectures=arm64-v8a --no-daemon
+
+  build-ios:
+    name: Build example (iOS)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: yarn
+      - run: yarn install --immutable
+      - uses: ruby/setup-ruby@v1
+        with:
+          working-directory: example
+          bundler-cache: true
+      - name: Install pods
+        working-directory: example/ios
+        run: bundle exec pod install
+      - name: Build for simulator
+        working-directory: example/ios
+        run: >
+          xcodebuild
+          -workspace AudioMixerExample.xcworkspace
+          -scheme AudioMixerExample
+          -configuration Debug
+          -sdk iphonesimulator
+          -destination 'generic/platform=iOS Simulator'
+          CODE_SIGNING_ALLOWED=NO
+          build
