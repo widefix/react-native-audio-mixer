@@ -1,6 +1,6 @@
 {
   "name": "@widefix/react-native-audio-mixer",
-  "version": "0.1.0",
+  "version": "0.0.0",
   "description": "Low-latency multitrack audio mixer for React Native (iOS and Android)",
   "main": "lib/commonjs/index",
   "module": "lib/module/index",
@@ -12,7 +12,6 @@
     "lib",
     "android",
     "ios",
-    "cpp",
     "*.podspec",
     "!ios/build",
     "!android/build",
@@ -105,7 +104,8 @@
   "release-it": {
     "git": {
       "commitMessage": "chore: release ${version}",
-      "tagName": "v${version}"
+      "tagName": "v${version}",
+      "requireBranch": "main"
     },
     "npm": {
       "publish": true
@@ -113,9 +113,13 @@
     "github": {
       "release": true
     },
+    "hooks": {
+      "before:init": "yarn typecheck && yarn lint && yarn test"
+    },
     "plugins": {
       "@release-it/conventional-changelog": {
-        "preset": "angular"
+        "preset": "angular",
+        "infile": "CHANGELOG.md"
       }
     }
   },
@@ -161,7 +165,8 @@
       [
         "typescript",
         {
-          "project": "tsconfig.build.json"
+          "project": "tsconfig.build.json",
+          "tsc": "./node_modules/.bin/tsc"
         }
       ]
     ]

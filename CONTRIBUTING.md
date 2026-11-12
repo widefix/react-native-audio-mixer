@@ -54,6 +54,24 @@ Use [Conventional Commits](https://www.conventionalcommits.org), for example
 `fix(android): resume playback after a call`. The release changelog is
 generated from them.
 
+## Releasing
+
+Maintainers release from an up-to-date `main` with a clean working tree:
+
+```sh
+yarn release
+```
+
+[release-it](https://github.com/release-it/release-it) runs the checks,
+suggests the next version from the commits since the last tag, updates
+`CHANGELOG.md`, tags `v<version>`, publishes to npm and creates the GitHub
+release. You need to be logged in to npm (`npm login`) with publish access
+to the `@widefix` scope, and `GITHUB_TOKEN` must be set for the GitHub
+release. Add `--dry-run` to preview a release without changing anything.
+
+The package includes the ffmpeg-kit AAR in `android/libs`, which makes the
+tarball about 37 MB.
+
 ## Pull requests
 
 - Keep each pull request to one change.
