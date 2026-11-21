@@ -22,11 +22,11 @@ const loadMixer = () => {
 describe('AudioMixer', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    NativeModules.Armsaudio = native;
+    NativeModules.RNAudioMixer = native;
   });
 
   afterEach(() => {
-    delete NativeModules.Armsaudio;
+    delete NativeModules.RNAudioMixer;
   });
 
   it('loads tracks from URLs', () => {
@@ -93,7 +93,7 @@ describe('AudioMixer', () => {
   });
 
   it('throws a linking error when the native module is missing', () => {
-    delete NativeModules.Armsaudio;
+    delete NativeModules.RNAudioMixer;
     const { AudioMixer } = loadMixer();
     expect(() => AudioMixer.togglePlay()).toThrow(/doesn't seem to be linked/);
   });

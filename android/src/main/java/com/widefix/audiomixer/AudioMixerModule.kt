@@ -1,4 +1,4 @@
-package com.armsaudio
+package com.widefix.audiomixer
 
 import android.content.Context
 import android.media.AudioManager
@@ -32,11 +32,11 @@ data class AudioTrack(
     var amplitudes: MutableList<Float> = MutableList(10) { 0.0f } // Initialize with 10 zeroes
 )
 
-class ArmsaudioModule(reactContext: ReactApplicationContext) :
+class AudioMixerModule(reactContext: ReactApplicationContext) :
     ReactContextBaseJavaModule(reactContext) {
 
     companion object {
-        const val NAME = "Armsaudio"
+        const val NAME = "RNAudioMixer"
         const val downloadsDir = "rnAudioMixer"
     }
 

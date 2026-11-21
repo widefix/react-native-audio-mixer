@@ -1426,7 +1426,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
-  - react-native-audio-mixer (0.1.0):
+  - react-native-audio-mixer (0.0.0):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -2193,7 +2193,7 @@ SPEC CHECKSUMS:
   React-Mapbuffer: 3c805ea54675b00ef1755f23b3c1fccf34962b93
   React-microtasksnativemodule: 97a771dbbb4315c71579995b53e4e3e351a99d89
   React-mutationobservernativemodule: 530bff1bba9511a5133e3cf8170e3b2c0df49e89
-  react-native-audio-mixer: 21c8bffe8f190c7abb47f3bef019edff81418fcb
+  react-native-audio-mixer: e44e66bda2e8373126d9931428ff5e4e804cf215
   react-native-safe-area-context: 02beb7e497cc76f97392ef5d77fccd9d9e3b2840
   React-NativeModulesApple: 2b658272ca69df0694cf5d54f9510aa7c33977bc
   React-networking: 6be0b80e18e710dd30e77b04838ec46666a7bb78

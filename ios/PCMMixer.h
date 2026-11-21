@@ -7,7 +7,7 @@
 #include <mutex>
 #include <vector>
 
-namespace armsaudio {
+namespace audiomixer {
 constexpr uint32_t sampleRate = 48000;
 constexpr uint32_t channels = 2;
 // A long track keeps this much decoded audio. The reader stays this far behind

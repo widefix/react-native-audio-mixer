@@ -15,20 +15,20 @@ static std::vector<iolib::SampleSource*> sources;
 
 extern "C"
 JNIEXPORT jlong JNICALL
-Java_com_armsaudio_ArmsaudioModule_testFunction(JNIEnv *env,jobject obj) {
+Java_com_widefix_audiomixer_AudioMixerModule_testFunction(JNIEnv *env,jobject obj) {
     __android_log_print(ANDROID_LOG_INFO, "test", "Test function successfully called.");
     return 17;
 }
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_armsaudio_ArmsaudioModule_preparePlayer(JNIEnv *env, jobject thiz) {
+Java_com_widefix_audiomixer_AudioMixerModule_preparePlayer(JNIEnv *env, jobject thiz) {
     sPlayer.setupAudioStream(2);
 }
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_armsaudio_ArmsaudioModule_resetPlayer(JNIEnv *env, jobject thiz) {
+Java_com_widefix_audiomixer_AudioMixerModule_resetPlayer(JNIEnv *env, jobject thiz) {
     sPlayer.unloadSampleData();
     sources.clear();
 }
@@ -41,7 +41,7 @@ inline bool file_exists(const char* name) {
 // Method returns track index or -1 if the track is invalid
 extern "C"
 JNIEXPORT jint JNICALL
-Java_com_armsaudio_ArmsaudioModule_loadTrack(JNIEnv *env, jobject thiz, jstring fileName) {
+Java_com_widefix_audiomixer_AudioMixerModule_loadTrack(JNIEnv *env, jobject thiz, jstring fileName) {
     auto filename = env->GetStringUTFChars(fileName, 0);
 
     if (file_exists(filename)) {
@@ -66,7 +66,7 @@ Java_com_armsaudio_ArmsaudioModule_loadTrack(JNIEnv *env, jobject thiz, jstring 
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_armsaudio_ArmsaudioModule_prepareStream(JNIEnv *env,jobject obj) {
+Java_com_widefix_audiomixer_AudioMixerModule_prepareStream(JNIEnv *env,jobject obj) {
     sPlayer.stopAllSources();
     sPlayer.setPauseMode();
     sPlayer.startStream();
@@ -76,7 +76,7 @@ Java_com_armsaudio_ArmsaudioModule_prepareStream(JNIEnv *env,jobject obj) {
 
 extern "C"
 JNIEXPORT jfloat JNICALL
-Java_com_armsaudio_ArmsaudioModule_getMaxPlaybackDuration(JNIEnv *env, jobject thiz) {
+Java_com_widefix_audiomixer_AudioMixerModule_getMaxPlaybackDuration(JNIEnv *env, jobject thiz) {
     jfloat maxDuration = 0.0f;
     for (int i = 0; i < sources.size(); ++i) {
         float duration = sources[i]->getDuration();
@@ -89,19 +89,19 @@ Java_com_armsaudio_ArmsaudioModule_getMaxPlaybackDuration(JNIEnv *env, jobject t
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_armsaudio_ArmsaudioModule_pauseAudio(JNIEnv *env, jobject thiz) {
+Java_com_widefix_audiomixer_AudioMixerModule_pauseAudio(JNIEnv *env, jobject thiz) {
     sPlayer.pause();
 }
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_armsaudio_ArmsaudioModule_resumeAudio(JNIEnv *env, jobject thiz) {
+Java_com_widefix_audiomixer_AudioMixerModule_resumeAudio(JNIEnv *env, jobject thiz) {
     sPlayer.resume();
 }
 
 extern "C"
 JNIEXPORT jfloat JNICALL
-Java_com_armsaudio_ArmsaudioModule_getCurrentPosition(JNIEnv *env, jobject thiz) {
+Java_com_widefix_audiomixer_AudioMixerModule_getCurrentPosition(JNIEnv *env, jobject thiz) {
     if (sources.empty())
         return 0;
 
@@ -110,7 +110,7 @@ Java_com_armsaudio_ArmsaudioModule_getCurrentPosition(JNIEnv *env, jobject thiz)
 
 extern "C"
 JNIEXPORT jobjectArray JNICALL
-Java_com_armsaudio_ArmsaudioModule_getAmplitudes(JNIEnv *env, jobject thiz) {
+Java_com_widefix_audiomixer_AudioMixerModule_getAmplitudes(JNIEnv *env, jobject thiz) {
     auto length = sources.size();
     auto amplitudesCpp = new float[length];
     for (int i = 0; i < length; i++) {
@@ -131,13 +131,13 @@ Java_com_armsaudio_ArmsaudioModule_getAmplitudes(JNIEnv *env, jobject thiz) {
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_armsaudio_ArmsaudioModule_setPosition(JNIEnv *env, jobject thiz, jfloat position) {
+Java_com_widefix_audiomixer_AudioMixerModule_setPosition(JNIEnv *env, jobject thiz, jfloat position) {
     sPlayer.setPosition(position);
 }
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_armsaudio_ArmsaudioModule_setTrackVolume(
+Java_com_widefix_audiomixer_AudioMixerModule_setTrackVolume(
         JNIEnv *env,
         jobject thiz,
         jint track_num,
@@ -147,7 +147,7 @@ Java_com_armsaudio_ArmsaudioModule_setTrackVolume(
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_armsaudio_ArmsaudioModule_setTrackPan(
+Java_com_widefix_audiomixer_AudioMixerModule_setTrackPan(
         JNIEnv *env,
         jobject thiz,
         jint track_num,

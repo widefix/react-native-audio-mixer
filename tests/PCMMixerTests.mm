@@ -4,9 +4,9 @@
 
 int main(int argc, const char **argv) {
     @autoreleasepool {
-        armsaudio::Mixer mixer;
-        auto a = std::make_shared<armsaudio::Track>();
-        auto b = std::make_shared<armsaudio::Track>();
+        audiomixer::Mixer mixer;
+        auto a = std::make_shared<audiomixer::Track>();
+        auto b = std::make_shared<audiomixer::Track>();
         a->channelCount = 2;
         b->channelCount = 2;
         a->samples = {0.2f, 0.4f, 0.3f, 0.5f};
@@ -34,8 +34,8 @@ int main(int argc, const char **argv) {
         mixer.render(output, 1);
         assert(output[0] == 0 && std::abs(output[1] - 0.2f) < 1e-6);
         // Two full-scale tracks sum past 1 and clip. One shared position still advances both.
-        auto clipLeft = std::make_shared<armsaudio::Track>();
-        auto clipRight = std::make_shared<armsaudio::Track>();
+        auto clipLeft = std::make_shared<audiomixer::Track>();
+        auto clipRight = std::make_shared<audiomixer::Track>();
         clipLeft->channelCount = clipRight->channelCount = 2;
         clipLeft->samples = clipRight->samples = {1.f, -1.f};
         mixer.tracks = {clipLeft, clipRight};
@@ -44,7 +44,7 @@ int main(int argc, const char **argv) {
         mixer.render(output, 1);
         assert(output[0] == 1 && output[1] == -1);
         // A mono track is stored as one channel and spread by the pan law at mix time.
-        auto mono = std::make_shared<armsaudio::Track>();
+        auto mono = std::make_shared<audiomixer::Track>();
         mono->channelCount = 1;
         mono->samples = {0.5f, 0.f};
         mixer.tracks = {mono, a};
@@ -58,7 +58,7 @@ int main(int argc, const char **argv) {
         assert(mixer.position == 2);
         // A ring publishes [validFrom, readyUntil). Frame F lives at F % capacity, and the slot
         // capacity behind the write is stale.
-        auto ring = std::make_shared<armsaudio::Track>();
+        auto ring = std::make_shared<audiomixer::Track>();
         ring->channelCount = 1;
         ring->capacityFrames = 4;
         ring->lengthFrames.store(8);
@@ -95,10 +95,10 @@ int main(int argc, const char **argv) {
             NSError *error = nil;
             auto decoded = DecodeTrack([NSURL fileURLWithPath:@(argv[i])], &error);
             assert(decoded && !error);
-            assert(decoded->channelCount == armsaudio::channels);
+            assert(decoded->channelCount == audiomixer::channels);
             const auto frames = decoded->frameCount();
             assert(frames >= 47000 && frames <= 50000);
-            assert(decoded->samples.size() == frames * armsaudio::channels);
+            assert(decoded->samples.size() == frames * audiomixer::channels);
             double energy = 0;
             for (float sample : decoded->samples) {
                 assert(std::isfinite(sample));

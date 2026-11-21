@@ -49,8 +49,8 @@ interface NativeAudioMixer {
   removeListeners(count: number): void;
 }
 
-const Native: NativeAudioMixer = NativeModules.Armsaudio
-  ? NativeModules.Armsaudio
+const Native: NativeAudioMixer = NativeModules.RNAudioMixer
+  ? NativeModules.RNAudioMixer
   : new Proxy(
       {},
       {
@@ -62,7 +62,7 @@ const Native: NativeAudioMixer = NativeModules.Armsaudio
 
 let emitter: NativeEventEmitter | undefined;
 const getEmitter = () => {
-  emitter ??= new NativeEventEmitter(NativeModules.Armsaudio);
+  emitter ??= new NativeEventEmitter(NativeModules.RNAudioMixer);
   return emitter;
 };
 

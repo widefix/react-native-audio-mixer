@@ -15,11 +15,11 @@
 #define MINIAUDIO_IMPLEMENTATION
 #include "vendor/miniaudio.h"
 
-@interface Armsaudio : RCTEventEmitter <RCTBridgeModule>
+@interface RNAudioMixer : RCTEventEmitter <RCTBridgeModule>
 @end
 
-@implementation Armsaudio {
-    armsaudio::Mixer _mixer;
+@implementation RNAudioMixer {
+    audiomixer::Mixer _mixer;
     ma_context _context;
     ma_device _device;
     BOOL _contextReady, _deviceReady, _playing, _resumeAfterBackground, _resumeAfterInterruption;
@@ -35,7 +35,7 @@
     std::condition_variable _fillCv;
     bool _fillStop, _fillAwake, _fillKick;
 }
-RCT_EXPORT_MODULE(Armsaudio)
+RCT_EXPORT_MODULE(RNAudioMixer)
 + (BOOL)requiresMainQueueSetup { return YES; }
 - (dispatch_queue_t)methodQueue { return dispatch_get_main_queue(); }
 - (NSArray<NSString *> *)supportedEvents {
@@ -71,11 +71,11 @@ RCT_EXPORT_MODULE(Armsaudio)
         _contextReady = YES;
         ma_device_config config = ma_device_config_init(ma_device_type_playback);
         config.playback.format = ma_format_f32;
-        config.playback.channels = armsaudio::channels;
-        config.sampleRate = armsaudio::sampleRate;
+        config.playback.channels = audiomixer::channels;
+        config.sampleRate = audiomixer::sampleRate;
         config.pUserData = &_mixer;
         config.dataCallback = [](ma_device *device, void *output, const void *, ma_uint32 frames) {
-            static_cast<armsaudio::Mixer *>(device->pUserData)->render(static_cast<float *>(output), frames);
+            static_cast<audiomixer::Mixer *>(device->pUserData)->render(static_cast<float *>(output), frames);
         };
         result = ma_device_init(&_context, &config, &_device);
         _deviceReady = result == MA_SUCCESS;
@@ -127,7 +127,7 @@ RCT_EXPORT_MODULE(Armsaudio)
     void *owner = (__bridge void *)self;
     _filler = std::thread([owner] {
         while (true) {
-            __unsafe_unretained Armsaudio *self = (__bridge Armsaudio *)owner;
+            __unsafe_unretained RNAudioMixer *self = (__bridge RNAudioMixer *)owner;
             bool playing = false;
             {
                 std::unique_lock<std::mutex> lock(self->_fillCvMutex);
@@ -137,7 +137,7 @@ RCT_EXPORT_MODULE(Armsaudio)
                 // A seek while paused needs one refill, then the thread waits again.
                 if (!playing) self->_fillKick = false;
             }
-            std::vector<std::shared_ptr<armsaudio::Track>> tracks;
+            std::vector<std::shared_ptr<audiomixer::Track>> tracks;
             {
                 std::lock_guard<std::mutex> lock(self->_tracksMutex);
                 tracks = self->_mixer.tracks;
@@ -167,7 +167,7 @@ RCT_EXPORT_MODULE(Armsaudio)
     NSFileManager *fm = NSFileManager.defaultManager;
     NSString *tmp = NSTemporaryDirectory();
     for (NSString *name in [fm contentsOfDirectoryAtPath:tmp error:nil]) {
-        if (![name hasPrefix:@"armsaudio"]) continue;
+        if (![name hasPrefix:@"react-native-audio-mixer-"]) continue;
         NSString *path = [tmp stringByAppendingPathComponent:name];
         BOOL directory = NO;
         if (![fm fileExistsAtPath:path isDirectory:&directory] || !directory) continue;
@@ -221,7 +221,7 @@ RCT_EXPORT_METHOD(setPlaybackPosition:(double)point) {
     BOOL playing = _playing;
     [self pause];
     const uint64_t frame = uint64_t(std::max(0.0, std::min(1.0, point)) * _mixer.length);
-    std::vector<std::shared_ptr<armsaudio::Track>> tracks;
+    std::vector<std::shared_ptr<audiomixer::Track>> tracks;
     {
         std::lock_guard<std::mutex> lock(_tracksMutex);
         tracks = _mixer.tracks;
@@ -255,7 +255,7 @@ RCT_EXPORT_METHOD(resetApp) {
     [_urlMap removeAllObjects];
     _pending = 0;
     [self deleteStemsDirectory];
-    _stemsDirectory = [NSTemporaryDirectory() stringByAppendingPathComponent:[NSString stringWithFormat:@"armsaudio-%@", NSUUID.UUID.UUIDString]];
+    _stemsDirectory = [NSTemporaryDirectory() stringByAppendingPathComponent:[NSString stringWithFormat:@"react-native-audio-mixer-%@", NSUUID.UUID.UUIDString]];
     [self startFiller];
 }
 - (void)tick {
@@ -268,10 +268,10 @@ RCT_EXPORT_METHOD(resetApp) {
 }
 - (void)finishDownloads {
     [_downloads removeAllObjects];
-    __weak Armsaudio *weakSelf = self;
+    __weak RNAudioMixer *weakSelf = self;
     _timer = [NSTimer scheduledTimerWithTimeInterval:0.1 repeats:YES block:^(NSTimer *) { [weakSelf tick]; }];
     [self sendEventWithName:@"DownloadComplete" body:[_urlMap copy]];
-    [self sendEventWithName:@"MixerDurationSet" body:@(double(_mixer.length) / armsaudio::sampleRate)];
+    [self sendEventWithName:@"MixerDurationSet" body:@(double(_mixer.length) / audiomixer::sampleRate)];
 }
 RCT_EXPORT_METHOD(downloadAudioFiles:(NSArray<NSString *> *)urls) {
     [self resetApp];
@@ -290,23 +290,23 @@ RCT_EXPORT_METHOD(downloadAudioFiles:(NSArray<NSString *> *)urls) {
         // Unique identifiers also handle tracks whose URLs share a basename.
         NSString *name = [NSString stringWithFormat:@"track%lu.m4a", (unsigned long)index];
         NSString *stemsDirectory = _stemsDirectory;
-        __weak Armsaudio *weakSelf = self;
+        __weak RNAudioMixer *weakSelf = self;
         NSURLSessionDownloadTask *task = [NSURLSession.sharedSession downloadTaskWithURL:url completionHandler:^(NSURL *location, NSURLResponse *response, NSError *downloadError) {
             @autoreleasepool {
                 NSError *error = downloadError;
-                __block std::shared_ptr<armsaudio::Track> track;
+                __block std::shared_ptr<audiomixer::Track> track;
                 NSURL *saved = nil;
                 NSInteger statusCode = [(NSHTTPURLResponse *)response statusCode];
                 if (!error && (statusCode < 200 || statusCode >= 300)) {
-                    error = [NSError errorWithDomain:@"ArmsaudioHTTP" code:statusCode userInfo:@{NSLocalizedDescriptionKey: [NSString stringWithFormat:@"Audio download failed (HTTP %ld)", (long)statusCode]}];
+                    error = [NSError errorWithDomain:@"RNAudioMixerHTTP" code:statusCode userInfo:@{NSLocalizedDescriptionKey: [NSString stringWithFormat:@"Audio download failed (HTTP %ld)", (long)statusCode]}];
                 }
                 // URLSession deletes its temporary file when this handler returns, so keep our own copy.
-                Armsaudio *loader = weakSelf;
+                RNAudioMixer *loader = weakSelf;
                 if (!error && location && loader)
                     saved = [loader copyStemAtLocation:location name:name directory:stemsDirectory error:&error];
                 if (!error && saved) track = DecodeTrack(saved, &error);
                 dispatch_async(dispatch_get_main_queue(), ^{
-                    Armsaudio *self = weakSelf;
+                    RNAudioMixer *self = weakSelf;
                     if (!self || generation != self->_generation) {
                         track.reset();
                         NSFileManager *fm = NSFileManager.defaultManager;
