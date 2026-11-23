@@ -140,5 +140,4 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for more.
 
 ## License
 
-MIT. Originally written by [armstrong99](https://github.com/armstrong99),
-maintained by [WideFix](https://widefix.com).
+MIT
