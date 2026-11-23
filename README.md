@@ -1,15 +1,16 @@
-# @widefix/react-native-audio-mixer
+# React Native Audio Mixer
 
-Multitrack audio mixer for React Native. Load several stems (vocals, drums,
-bass, click…), play them in sync and change each track's volume and pan in
-real time, with live levels and seeking.
+Play multiple audio tracks at once and keep them in sync on iOS and Android.
+Load vocals, drums, bass, or a click track and play them as one mix, with
+low-latency controls and a native engine designed to keep memory use low.
 
-Mixing runs in native code on both platforms:
+- **Synchronized playback.** Start, pause, and seek all tracks together on a shared timeline.
+- **Responsive mixing.** Adjust each track's volume and stereo pan during playback. Build mute and solo controls with the same volume API.
+- **Live feedback.** Drive a seek bar and per-track level meters with typed playback events.
 
-- **iOS:** tracks are decoded with AudioToolbox and mixed through
-  [miniaudio](https://miniaud.io).
-- **Android:** tracks are converted with ffmpeg-kit and mixed through
-  [Oboe](https://github.com/google/oboe), Google's low-latency audio library.
+Mixing runs in native code. iOS decodes audio with AudioToolbox and mixes
+with [miniaudio](https://miniaud.io). Android converts audio with ffmpeg-kit
+and mixes with [Oboe](https://github.com/google/oboe).
 
 ## Installation
 
@@ -19,58 +20,70 @@ yarn add @widefix/react-native-audio-mixer
 npm install @widefix/react-native-audio-mixer
 ```
 
-Then install the iOS pods:
+On iOS, install the pods:
 
 ```sh
 cd ios && pod install
 ```
 
-The library contains native code, so it does not work in Expo Go. In an Expo
-app, use a [development build](https://docs.expo.dev/develop/development-builds/introduction/).
+Rebuild your app after installation. Expo apps require a
+[development build](https://docs.expo.dev/develop/development-builds/introduction/).
 
 Tested with React Native 0.86 (new architecture) on iOS 26 and Android 16.
 Android needs API 24 or newer.
 
-## Usage
+## Quick start
+
+Use stems exported from the same starting point, with any leading silence
+preserved. Replace the example URLs with your own M4A files. The mixer
+downloads and decodes the files before playback. `DownloadComplete` tells
+you when the mix is ready and gives you the track IDs for volume and pan.
 
 ```tsx
 import { useEffect, useState } from 'react';
+import { Button, Text, View } from 'react-native';
 import AudioMixer, { type TrackId } from '@widefix/react-native-audio-mixer';
 
-const STEMS = [
-  'https://example.com/song/vocals.m4a',
-  'https://example.com/song/drums.m4a',
-  'https://example.com/song/bass.m4a',
-];
+const VOCALS = 'https://example.com/song/vocals.m4a';
+const DRUMS = 'https://example.com/song/drums.m4a';
 
-export function Player() {
+export function StemPlayer() {
   const [tracks, setTracks] = useState<Record<string, TrackId>>({});
-  const [progress, setProgress] = useState(0);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    const subscriptions = [
-      // Maps every URL to the track id the other methods take.
-      AudioMixer.addListener('DownloadComplete', setTracks),
-      AudioMixer.addListener('PlaybackProgress', (e) => setProgress(e.progress)),
-    ];
-    AudioMixer.load(STEMS);
+    const ready = AudioMixer.addListener('DownloadComplete', setTracks);
+    const failed = AudioMixer.addListener('DownloadErrors', ({ errMsg }) =>
+      setError(errMsg)
+    );
+
+    AudioMixer.load([VOCALS, DRUMS]);
+
     return () => {
-      subscriptions.forEach((s) => s.remove());
+      ready.remove();
+      failed.remove();
       AudioMixer.reset();
     };
   }, []);
 
-  const vocals = tracks[STEMS[0]];
-  // AudioMixer.togglePlay();
-  // AudioMixer.setVolume(vocals, 0.5);
-  // AudioMixer.setPan(vocals, -1);
-  // AudioMixer.seek(0.25);
+  const vocals = tracks[VOCALS];
+
+  if (error) return <Text>{error}</Text>;
+  if (!vocals) return <Text>Loading tracks…</Text>;
+
+  return (
+    <View>
+      <Button title="Play / pause" onPress={() => AudioMixer.togglePlay()} />
+      <Button title="Lower vocals" onPress={() => AudioMixer.setVolume(vocals, 0.5)} />
+      <Button title="Seek to 25%" onPress={() => AudioMixer.seek(0.25)} />
+    </View>
+  );
 }
 ```
 
-Mute and solo are built on `setVolume`: set a track to `0` to mute it, or set
-every other track to `0` to solo it. The [example app](example/App.tsx) shows
-the full pattern.
+Set a track's volume to `0` to mute it. To solo a track, set the volume
+of every other track to `0`. The [example app](example/App.tsx) shows how
+to restore the previous mix when mute or solo is turned off.
 
 ## API
 
@@ -98,7 +111,7 @@ Values outside the ranges above are clamped.
 | `MixerDurationSet` | `number` | Length of the longest track, in seconds. |
 | `PlaybackProgress` | `{ progress: number }` | About every 100 ms while playing, from `0` to `1`. |
 | `TracksAmplitudes` | `{ amplitudes: Record<TrackId, number> }` | About every 100 ms while playing. The scale differs between iOS and Android. |
-| `PlaybackPaused` | `null` | Playback stopped on its own: a phone call, another app taking audio focus. |
+| `PlaybackPaused` | `null` | Playback paused after an interruption or audio focus loss. |
 | `DownloadErrors` | `{ errMsg: string; reason?: string }` | A track failed to download or decode. The mixer is reset. |
 | `AppErrorsX` | `{ errMsg: string }` | Any other native error, such as an unknown track id. |
 
@@ -140,4 +153,4 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for more.
 
 ## License
 
-MIT
+[MIT](LICENSE)
