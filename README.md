@@ -151,6 +151,10 @@ yarn prepare     # build lib/ with react-native-builder-bob
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for more.
 
+## Credits
+
+Created by [WideFix](https://widefix.com).
+
 ## License
 
 [MIT](LICENSE)
