@@ -63,6 +63,7 @@ jobs:
       - run: yarn install --immutable
       - uses: ruby/setup-ruby@v1
         with:
+          ruby-version: '3.4'
           working-directory: example
           bundler-cache: true
       - name: Install pods
